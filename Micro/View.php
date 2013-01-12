@@ -15,6 +15,10 @@ namespace Micro;
 class View
 {
 
+	public static $directory = NULL;
+
+	public static $ext = '.php';
+
 	private $__view = NULL;
 
 	/**
@@ -53,7 +57,7 @@ class View
 		try {
 			ob_start();
 			extract((array) $this);
-			require SP . "View/" . $this->__view . EXT;
+			require static::$directory . $this->__view . static::$ext;
 			return ob_get_clean();
 		}
 		catch(\Exception $e)
