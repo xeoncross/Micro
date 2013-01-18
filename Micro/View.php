@@ -62,7 +62,7 @@ class View
 		}
 		catch(\Exception $e)
 		{
-			Error::exception($e);
+			\Micro\Error::exception($e);
 			return '';
 		}
 	}
