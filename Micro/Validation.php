@@ -366,7 +366,7 @@ class Validation
 	 */
 	protected function range_rule($data, $min, $max)
 	{
-                $strlen = mb_strlen($data);
+		$strlen = mb_strlen($data);
 		return ($strlen >= $min) AND ($strlen <= $max);
 	}
 
