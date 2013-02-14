@@ -361,7 +361,7 @@ class Validation
 	 *
 	 * @param string $data to validate
 	 * @param int $min of the string
-         * @param int $max of the string
+	 * @param int $max of the string
 	 * @return boolean
 	 */
 	protected function range_rule($data, $min, $max)
