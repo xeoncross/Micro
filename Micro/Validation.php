@@ -355,7 +355,20 @@ class Validation
 	{
 		return mb_strlen($data) <= $length;
 	}
-
+        
+	/**
+	 * between length of the string.
+	 *
+	 * @param string $data to validate
+	 * @param int $min of the string
+	 * @param int $max of the string
+	 * @return boolean
+	 */
+	protected function between_rule($data, $min, $max)
+	{
+		$strlen = mb_strlen($data);
+		return ($max > $min) AND ($strlen >= $min) AND ($strlen <= $max);
+	}
 
 	/**
 	 * Exact length of the string.
