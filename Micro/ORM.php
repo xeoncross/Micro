@@ -338,7 +338,7 @@ class ORM
 
 		if(empty(static::$has_many_through[$alias]))
 		{
-			throw new Exception ($alias . ' relation not found');
+			throw new \Exception ($alias . ' relation not found');
 		}
 
 		$array = static::$has_many_through[$alias];
