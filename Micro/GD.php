@@ -24,10 +24,10 @@ class GD
 	 * @param int $height the height
 	 * @param int $quality of image thumbnail
 	 * @return string
-	 */
+	 *
 	public static function thumbnail($file, $width = 80, $height = 80, $quality = 80)
 	{
-		if(! is_file($file)) return;
+		if( ! is_file($file)) return;
 
 		$dir = "Public/Uploads/Thumbnails/$width-x-$height/";
 		$name = basename($file) . '.jpg';
@@ -47,7 +47,7 @@ class GD
 		}
 
 	}
-
+	*/
 
 	/**
 	 * Open a resource handle to a (png/gif/jpeg) image file for processing .
@@ -128,5 +128,3 @@ class GD
 	}
 
 }
-
-// END

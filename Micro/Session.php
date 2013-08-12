@@ -1,86 +1,82 @@
 <?php
-/**
- * Session
- *
- * Stores session data in encrypted cookies to save database/memcached load .
- * Flash uploaders and session masquerading should make use of the open() method
- * to allow hyjacking of sessions . Sessions stored in cookies must be under 4KB .
- *
- * Also make sure to call the token methods if using forms to help prevent CSFR .
- * <input value = "<?php print Session::token();
- ?>" name = "token" />
- *
- * @package		MicroMVC
- * @author		David Pennington
- * @copyright	(c) 2011 MicroMVC Framework
- * @license		http://micromvc.com/license
- ********************************** 80 Columns *********************************
- */
+
 namespace Micro;
 
+/**
+ * Session class using encrypted cookies
+ *
+ * @todo We are sending duplicate cookie headers with this approach :(
+ *
+ * @see \Micro\Cookie
+ */
 class Session
 {
+	public $array;
 
 	/**
-	 * Configure the session settings, check for problems, and then start the session .
+	 * Create, save, and start a new session handler instance
 	 *
-	 * @param array $config an optional configuration array
+	 * @param array $config
+	 */
+	public function __construct(array $config)
+	{
+		$this->config = $config;
+
+		session_set_save_handler(
+			array($this, 'justSmileAndWave'),
+			array($this, 'justSmileAndWave'),
+			array($this, 'read'),
+			array($this, 'write'),
+			array($this, 'justSmileAndWave'),
+			array($this, 'justSmileAndWave')
+		);
+
+		// Set the session to be the same as the session data cookie we make
+		// This allows us to overwrite it and only have one cookie.
+		session_set_cookie_params( 
+			$config['expires'],
+			$config['path'], 
+			$config['domain'], 
+			$config['secure'], 
+			$config['httponly'] 
+		);
+
+		// the following prevents unexpected effects when using objects as save handlers
+		register_shutdown_function('session_write_close');
+
+		// Start
+		session_start();
+	}
+
+	/**
+	 * We are *not* using a database, filesystem, or memcached instance requiring lots
+	 * of setup, take-down, or cleanup. So, http://www.youtube.com/watch?v=DvYBZRwwGB4
+	 */
+	public function justSmileAndWave()
+	{
+		return true;
+	}
+
+	/**
+	 * Fetch the session data from our cookie
+	 *
+	 * @param integer $id
+	 * @return array
+	 */
+	public function read($id)
+	{
+		return Cookie::get($this->config['name'], $this->config);
+	}
+
+	/**
+	 * Save the session data to the cookie
+	 *
+	 * @param integer $id
+	 * @param array $data
 	 * @return boolean
 	 */
-	public static function start($name = 'session')
+	public function write($id, $data)
 	{
-		// Was the session already started?
-		if( ! empty($_SESSION)) return FALSE;
-		$_SESSION = Cookie::get($name);
-		return TRUE;
+		return Cookie::set($this->config['name'], $data, $this->config);
 	}
-
-
-	/**
-	 * Called at end-of-page to save the current session data to the session cookie
-	 *
-	 * return boolean
-	 */
-	public static function save($name = 'session')
-	{
-		return Cookie::set($name, $_SESSION);
-	}
-
-
-	/**
-	 * Destroy the current users session
-	 */
-	public static function destroy($name = 'session')
-	{
-		Cookie::set($name, '');
-		unset($_COOKIE[$name], $_SESSION);
-	}
-
-
-	/**
-	 * Create new session token or validate the token passed
-	 *
-	 * @param string $token value to validate
-	 * @return string|boolean
-	 */
-	public static function token($token = NULL)
-	{
-		if( ! isset($_SESSION)) return FALSE;
-
-		// If a token is given, then lets match it
-		if($token !== NULL)
-		{
-			if( ! empty($_SESSION['token']) && $token === $_SESSION['token'])
-			{
-				return TRUE;
-			}
-
-			return FALSE;
-		}
-
-		return $_SESSION['token'] = token();
-	}
-
 }
-
-// END

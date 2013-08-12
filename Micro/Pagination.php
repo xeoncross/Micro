@@ -10,11 +10,11 @@
  * @license		http://micromvc.com/license
  ********************************** 80 Columns *********************************
  */
+
 namespace Micro;
 
 class Pagination
 {
-
 	public $total = NULL;
 	public $current = NULL;
 	public $path = NULL;
@@ -103,7 +103,7 @@ class Pagination
 	{
 		$attributes = array('class' => 'next');
 
-		if($this->total < 2 OR $this->current < $this->total)
+		if($this->total < 2 OR $this->current >= $this->total)
 		{
 			$attributes = array('class' => 'disabled next');
 		}
@@ -157,7 +157,8 @@ class Pagination
 	 */
 	public function url($page = NULL)
 	{
-		return site_url($this->path, (array) $this->params + array('page' => $page));
+		//print dump($this->path, HTML::link(site_url(site_url($this->path))));
+		return site_url($this->path, array('page' => $page) + (array) $this->params);
 	}
 }
 

@@ -1,50 +1,53 @@
 <?php
-/**
- * Cookie
- *
- * Provides a encryption wrapper around standard cookie handling functions.
- *
- * @package		MicroMVC
- * @author		David Pennington
- * @copyright	(c) 2011 MicroMVC Framework
- * @license		http://micromvc.com/license
- ********************************** 80 Columns *********************************
- */
+
 namespace Micro;
 
+/**
+ * Handle reading and writing encrypted cookies
+ */
 class Cookie
 {
+	/**
+	 * Create a new encrypted cookie object
+	 *
+	 * @param array $config values
+	 */
+	public function __construct(array $config)
+	{
+		if(empty($config['key'])) {
+			throw new \Exception('No cookie encryption key is set');
+		}
 
-	public static $settings = array();
+		$this->config = $config + array(
+			'timeout' => 60 * 30, // Only last for half an hour
+			'expire' => 0, // Expires when browser closes
+			'path' => '/',
+			'domain' => '.' . getenv('HTTP_HOST'),
+			'secure' => false,
+			'httponly' => true
+		);
+	}
 
 	/**
-	 * Decrypt and fetch cookie data
+	 * Decrypt and fetch cookie data as long as the cookie has not expired
 	 *
 	 * @param string $name of cookie
 	 * @param array $config settings
 	 * @return mixed
 	 */
-	public static function get($name, $config = NULL)
+	public function get($name)
 	{
-		// Use default config settings if needed
-		$config = $config ?: static::$settings;
-
 		if(isset($_COOKIE[$name]))
 		{
-			// Decrypt cookie using cookie key
-			if($v = json_decode(Cipher::decrypt(base64_decode($_COOKIE[$name]), $config['key'])))
+			if($value = json_decode(Cipher::decrypt($_COOKIE[$name], $this->config['key']), TRUE))
 			{
-				// Has the cookie expired?
-				if($v[0] < $config['timeout'])
+				if($value[0] < (time() + $this->config['timeout']))
 				{
-					return is_scalar($v[1])?$v[1]:(array)$v[1];
+					return $value[1];
 				}
 			}
 		}
-
-		return FALSE;
 	}
-
 
 	/**
 	 * Called before any output is sent to create an encrypted cookie with the given value.
@@ -54,18 +57,20 @@ class Cookie
 	 * @param array $config settings
 	 * return boolean
 	 */
-	public static function set($name, $value, $config = NULL)
+	public function set($name, $value, array $config = array())
 	{
-		// Use default config settings if needed
-		extract($config ?: static::$settings);
+		extract($this->config);
 
 		// If the cookie is being removed we want it left blank
-		$value = $value ? base64_encode(Cipher::encrypt(json_encode(array(time(), $value)), $key)) : '';
+		if($value)
+		{
+			$value = Cipher::encrypt(json_encode(array(time(), $value)), $key);
+		}
+
+		// Update the current cookie global
+		$_COOKIE[$name] = $value;
 
 		// Save cookie to user agent
 		setcookie($name, $value, $expires, $path, $domain, $secure, $httponly);
 	}
-
 }
-
-// END
