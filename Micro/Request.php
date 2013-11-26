@@ -1,4 +1,15 @@
 <?php
+/**
+ * Request
+ *
+ * Wrapper around the state data about the current request. Perfect for DI.
+ *
+ * @package		MicroMVC
+ * @author		David Pennington
+ * @copyright	(c) 2013 MicroMVC Framework
+ * @license		http://micromvc.com/license
+ ********************************** 80 Columns *********************************
+ */
 namespace Micro;
 
 class Request

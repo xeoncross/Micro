@@ -1,44 +1,20 @@
 <?php
+/**
+ * App
+ *
+ * The application instance which handles mapping routes to controllers
+ *
+ * @package		MicroMVC
+ * @author		David Pennington
+ * @copyright	(c) 2013 MicroMVC Framework
+ * @license		http://micromvc.com/license
+ ********************************** 80 Columns *********************************
+ */
 namespace Micro;
 
-/**
- * The application instance which handles all controller mappings/route callbacks
- */
 class App extends Events
 {
 	protected $controllers = array();
-	protected $mappings = array();
-
-	/**
-	 * Define common system defaults
-	 */
-	public function setup()
-	{
-		// A stream should respond to a connection attempt within ten seconds
-		ini_set('default_socket_timeout', 10);
-
-		// iconv encoding default
-		iconv_set_encoding("internal_encoding", "UTF-8");
-
-		// Multibyte encoding
-		mb_internal_encoding('UTF-8');
-
-		// Don't show SimpleXML/DOM errors (most of the web is invalid)
-		libxml_use_internal_errors(true);
-
-		// Please sir - use GMT instead of UTC for poor little MySQL's sake!
-		date_default_timezone_set('GMT');
-	}
-
-	/**
-	 * Convert all input to valid, UTF-8 strings with no control characters
-	 */
-	public function filterInput()
-	{
-		$_GET = I18n::filter($_GET, false);
-		$_POST = I18n::filter($_POST, false);
-		$_COOKIE = I18n::filter($_COOKIE, false);
-	}
 
 	/**
 	 * Return the controller response for the given request object
@@ -49,7 +25,6 @@ class App extends Events
 
 		$path = $request->path;
 		$method = $request->method;
-		$format = $request->format;
 
 		try {
 
@@ -70,7 +45,7 @@ class App extends Events
 					$complete = array_shift($matches);
 
 					// The following code tries to solve:
-					// (Regex) "/^path/(\w+)/" + (Path) "path/word/other" = (Params) array(word, other)
+					// /^path/(\w+)/ + "path/foo/bar" = array('foo', 'bar')
 
 					// Skip the regex match and continue from there
 					$params = explode('/', trim(mb_substr($path, mb_strlen($complete)), '/'));
@@ -95,44 +70,55 @@ class App extends Events
 					$params = explode('/', trim(mb_substr($path, mb_strlen($route)), '/'));
 				}
 
-				// Make sure this HTTP method is legit
-				if($controller['methods']) {
+				$callback = $controller['callback'];
 
-					if( ! in_array($method, $controller['methods'])) {
+				if( ! $callback instanceof Closure AND ! is_object($callback)) {
+					$callback = new $callback($request);
 
+					// Does this controller support this HTTP method?
+					if( ! method_exists($this, $method)) {
 						$response->status(Response::METHOD_NOT_ALLOWED);
 
-						// 405 requires the response to contain a list of "Allow[ed]" methods
-						$response->header('Allow', join(', ', $controller['methods']));
+						$methods = array_intersect(
+							array('get', 'post', 'put', 'delete', 'options'),
+							get_class_methods($callback)
+						);
 
-						$this->emit('app.method_not_allowed', $response, $request, $path);
+						// 405 requires the response to contain a list of "Allow[ed]" methods
+						$response->header('Allow', join(', ', $methods));
+						$this->emit('method_not_allowed', $request, $response);
 
 						return $response;
 					}
-				}
 
-				// Make sure the requested format is allowed
-				if($controller['formats']) {
+				} else if($controller['methods']) {
 
-					if( ! in_array($format, $controller['formats'])) {
-
-						$response->status(Response::NOT_ACCEPTABLE);
-
-						// 406 *SHOULD* include a list of available entity characteristics and location(s)
-						$response->content($controller['formats']);
-
-						$this->emit('app.not_acceptable', $response, $request, $path);
+					// Does this closure support this HTTP method?
+					if ( ! in_array($method, $controller['methods'])) {
+						$response->status(Response::METHOD_NOT_ALLOWED);
+						$response->header('Allow', join(', ', $controller['methods']));
+						$this->emit('method_not_allowed', $request, $response);
 
 						return $response;
 					}
 				}
 			
-				array_unshift($params, $response);
+				array_unshift($params, $request);
 				$result = call_user_func_array($controller['callback'], $params);
 				
-				if(is_int($result) AND isset($response::$codes[$result])) {
+				if($result instanceof Response) {
+					return $result;
+				}
+
+				if(is_int($result)) {
+
 					$response->status($result);
-				} else if($result !== NULL) {
+
+					if(isset($response::$codes[$result])) {
+						$response->content($response::$codes[$result]);
+					}
+
+				} else if($result) {
 					$response->content($result);
 				}
 
@@ -140,13 +126,15 @@ class App extends Events
 			}
 
 			$response->status(Response::NOT_FOUND);
-			$this->emit('app.not_found', $response, $request, $path);
+			$this->emit('not_found', $request, $response);
 
 		} catch(\Exception $exception) {
 			
-			//die(__FILE__);
 			$response->status(Response::SERVER_ERROR);
-			$this->emit('app.exception', $exception, $response, $request, $path);
+			
+			if($this->emit('exception', $exception, $request, $response)) {
+				throw $exception;
+			}
 
 		}
 		
@@ -160,16 +148,12 @@ class App extends Events
 	 * @param closure $callback
 	 * @param boolean $overwrite
 	 */
-	public function map($route, $callback, $methods = NULL, $formats = NULL, $overwrite = true)
+	public function map($route, $callback, $methods = NULL, $overwrite = true)
 	{
 		$route = trim($route, '/');
 
-		if($methods) {
-			$methods = (array) $methods;
-		}
-
-		if($formats) {
-			$formats = (array) $formats;
+		if( ! is_array($methods)) {
+			$methods = explode('|', $methods);
 		}
 
 		/* Removed for PHP 5.3 support
@@ -184,7 +168,6 @@ class App extends Events
 
 			$this->controllers[$route] = array(
 				'callback' => $callback,
-				'formats' => $formats,
 				'methods' => $methods
 			);
 		}

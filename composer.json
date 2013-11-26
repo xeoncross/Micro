@@ -1,9 +1,9 @@
 {
     "name": "micro/micro",
 	"type": "library",
-	"keywords": ["microframework"],
+	"keywords": ["micro", "small", "framework", "microframework"],
 	"license": "MIT",
-    "description": "The MicroMVC Framework Libraries",
+    "description": "Common PHP Framework Libraries",
     "authors": [
 		{
 			"name": "David Pennington",

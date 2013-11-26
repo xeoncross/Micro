@@ -1,9 +1,17 @@
 <?php
+/**
+ * Events
+ *
+ * Simple event parent class for objects
+ *
+ * @package		MicroMVC
+ * @author		David Pennington
+ * @copyright	(c) 2013 MicroMVC Framework
+ * @license		http://micromvc.com/license
+ ********************************** 80 Columns *********************************
+ */
 namespace Micro;
 
-/**
- * Simple event base class for objects
- */
 abstract class Events
 {
 	protected $listeners = array();
@@ -58,7 +66,7 @@ abstract class Events
 		{
 			$result = call_user_func_array($listener, $parameters);
 				
-			if($result !== NULL)
+			if($result !== NULL) //AND count($result) === count($parameters))
 			{
 				$parameters = $result;
 			}

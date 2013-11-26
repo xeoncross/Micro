@@ -1,9 +1,17 @@
 <?php
+/**
+ * Response
+ *
+ * Prepare the Header/Body response to send to the client
+ *
+ * @package		MicroMVC
+ * @author		David Pennington
+ * @copyright	(c) 2013 MicroMVC Framework
+ * @license		http://micromvc.com/license
+ ********************************** 80 Columns *********************************
+ */
 namespace Micro;
 
-/**
- * Send a response to client
- */
 class Response
 {
 	/**
@@ -41,8 +49,7 @@ class Response
 	);
 
 	// Need to be able to change this for Unit Testing
-	public static $mode = PHP_SAPI;
-
+	public $mode = PHP_SAPI;
 	public $headers = array();
 	public $status = NULL;
 	public $content = NULL;
@@ -58,6 +65,7 @@ class Response
 	{
 		$this->status($status);
 		$this->content($content);
+		$this->header('Content-Type', 'text/html; charset=utf-8');
 	}
 
 	public function status($status = NULL)
@@ -85,6 +93,7 @@ class Response
 			$this->status($content->status());
 			$content = $content->content();
 
+		/* Need to move to App or something
 		// Validator response
 		} else if ($content instanceof Validator) {
 		
@@ -94,14 +103,13 @@ class Response
 			}
 
 			$this->content(array('validation' => $errors));
-		
+		*/
+
 		} else if ($content instanceof \SimpleXMLElement) {
 		
 			$this->header('Content-Type', 'text/xml; charset=utf-8');
 			$content = $content->asXML();
 		
-		} else {
-			$this->header('Content-Type', 'text/html; charset=utf-8');
 		}
 
 		$this->content = $content;
@@ -109,12 +117,15 @@ class Response
 	}
 
 
+	/**
+	 * Is this function really that useful?
+	 */
 	public function appendContent($content)
 	{
 		// Merge with existing JSON response?
 		if(is_array($content) AND is_array($this->content)) {
 
-			$this->content += $content;
+			//$this->content += $content;
 			$this->content = array_merge($this->content, $content);
 
 		} else if(is_array($content) OR is_array($this->content)) {
@@ -187,7 +198,7 @@ class Response
 
 		$status = (getenv('SERVER_PROTOCOL') ?: 'HTTP/1.1') . ' ' . $status;
 
-		if ( ! headers_sent() AND static::$mode != 'cli') {
+		if ( ! headers_sent() AND $this->mode != 'cli') {
 
 			// @todo Remove all cookie headers to fix double session-cookie bug
 			header('Set-Cookie: ', true);
@@ -201,7 +212,7 @@ class Response
 				header($type . ': ' . $value, TRUE);
 			}
 
-		} else if (static::$mode == 'cli') {
+		} else if ($this->mode == 'cli') {
 
 			print $status . "\n";
 
