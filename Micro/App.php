@@ -72,27 +72,11 @@ class App extends Events
 
 				$callback = $controller['callback'];
 
-				if( ! $callback instanceof Closure AND ! is_object($callback)) {
+				if( ! is_object($callback) AND ! $callback instanceof Closure) {
 					$callback = new $callback($request);
+				}
 
-					// Does this controller support this HTTP method?
-					if( ! method_exists($this, $method)) {
-						$response->status(Response::METHOD_NOT_ALLOWED);
-
-						$methods = array_intersect(
-							array('get', 'post', 'put', 'delete', 'options'),
-							get_class_methods($callback)
-						);
-
-						// 405 requires the response to contain a list of "Allow[ed]" methods
-						$response->header('Allow', join(', ', $methods));
-						$this->emit('method_not_allowed', $request, $response);
-
-						return $response;
-					}
-
-				} else if($controller['methods']) {
-
+				if($controller['methods']) {
 					// Does this closure support this HTTP method?
 					if ( ! in_array($method, $controller['methods'])) {
 						$response->status(Response::METHOD_NOT_ALLOWED);
@@ -104,7 +88,7 @@ class App extends Events
 				}
 			
 				array_unshift($params, $request);
-				$result = call_user_func_array($controller['callback'], $params);
+				$result = call_user_func_array($callback, $params);
 				
 				if($result instanceof Response) {
 					return $result;

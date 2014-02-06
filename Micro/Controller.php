@@ -18,6 +18,7 @@ class Controller
 	function get();
 	function post();
 	function put();
+	function patch();
 	function delete();
 	function options();
 	*/
@@ -28,15 +29,15 @@ class Controller
 	}
 	
 
-	public function __invoke($request, $params = NULL)
+	public function __invoke($request, $params = null)
 	{
 		// Does __invoke take args or what?
-		//$params = func_get_args();
+		$params = func_get_args();
 
 		// Get the request object
-		//$request = array_shift($params);
+		$request = array_shift($params);
 
-		$method = $request->method;
+		$method = strtolower($request->method);
 
 		// Try the global index if not supported
 		if( ! method_exists($this, $method))
@@ -45,7 +46,7 @@ class Controller
 			$response->status(Response::METHOD_NOT_ALLOWED);
 
 			$methods = array_intersect(
-				array('get', 'post', 'put', 'delete', 'options'),
+				array('get', 'post', 'put', 'patch', 'delete', 'options'),
 				get_class_methods($this)
 			);
 
@@ -59,8 +60,8 @@ class Controller
 		$result = call_user_func_array(array($this, $method), $params);
 
 		// Render HTML only for initial (non-AJAX) GET requests which return arrays
-		if($method == 'get' AND ! $request->ajax AND is_array($result)) {
-			$result = $this->html(str_replace('\\', '/', __CLASS__), $result);
+		if($method == 'get' AND ! $request->isAjax() AND is_array($result)) {
+			$result = $this->html('/Views/'. str_replace('\\', '/', __CLASS__), $result);
 		}
 
 		return $data;
@@ -68,7 +69,7 @@ class Controller
 
 	function html($view, $data)
 	{
-		$view = trim($view, '/') . '.php';
+		$view = trim($view, '/');
 		
 		/*
 		if( ! is_file($view)) {
