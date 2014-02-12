@@ -82,7 +82,7 @@ class App extends Events
 						$response->status(Response::METHOD_NOT_ALLOWED);
 						$response->header('Allow', join(', ', $controller['methods']));
 						$this->emit('method_not_allowed', $request, $response);
-
+						
 						return $response;
 					}
 				}

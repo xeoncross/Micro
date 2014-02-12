@@ -44,7 +44,13 @@ class View
 		if(isset($this->extends)) {
 			$extends = $this->extends;
 			$this->extends = null;
-			$this->previousView = $result;
+			//$this->content = $result;
+			
+			// If content wasn't defined
+			if(empty($this->__blocks['content'])) {
+				$this->__blocks['content'] = $result;
+			}
+
 			return $this->load($extends);
 		}
 

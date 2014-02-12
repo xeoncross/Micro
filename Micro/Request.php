@@ -31,7 +31,7 @@ class Request
 	 * TRACE, PATCH, and CONNECT should not be handled at the application level.
 	 */
 	public static $methods = array(
-		'GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'CLI'
+		'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'CLI'
 	);
 
 	public function __construct($method, $path, $parseFormat = TRUE)
