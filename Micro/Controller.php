@@ -61,27 +61,19 @@ class Controller
 
 		// Render HTML only for initial (non-AJAX) GET requests which return arrays
 		if($method == 'get' AND ! $request->isAjax() AND is_array($result)) {
-			$result = $this->html('/Views/'. str_replace('\\', '/', __CLASS__), $result);
+			$result = $this->html(str_replace('\\', '/', get_class($this)), $result);
 		}
 
-		return $data;
+		return $result;
 	}
 
 	function html($view, $data)
 	{
-		$view = trim($view, '/');
-		
-		/*
-		if( ! is_file($view)) {
-			throw new Exception('View not found for ' . __CLASS__);
-		}
-		*/
+		$view = new View($view);
+		$view->set($data);
+		//$view->ajax($isAjax); // Will disable extends()
 
-		$template = new View;
-		//$template->ajax($isAjax); // Will disable extends()
-		$template->set($data);
-
-		return $template($view);
+		return $view;
 	}
 
 }

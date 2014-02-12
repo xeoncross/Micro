@@ -6,8 +6,50 @@ namespace Micro;
  */
 class View
 {
-	public $__blocks, $__append;
-	public static $ext = '.php';
+	public $__view, $__blocks, $__append;
+	public static $ext = '.php', $directory = 'View/';
+
+	public function __construct($file)
+	{
+		$this->__view = trim($file, '/');
+	}
+
+	/**
+	 * Return the view's HTML
+	 *
+	 * @return string
+	 */
+	public function __toString()
+	{
+		try {
+			return $this->load($this->__view);
+		} catch(\Exception $exception) {
+			return '' . $exception;
+		}
+	}
+
+	/**
+	 * Load the given view
+	 *
+	 * @param string $__file__ the filename to load
+	 * @return string
+	 */
+	public function load($__file__)
+	{
+		ob_start();
+		extract((array) $this);
+		require static::$directory . $__file__. static::$ext;
+		$result = ob_get_clean();
+
+		if(isset($this->extends)) {
+			$extends = $this->extends;
+			$this->extends = null;
+			$this->previousView = $result;
+			return $this->load($extends);
+		}
+
+		return $result;
+	}
 
 	/**
 	 * Allows setting template values while still returning the object instance
@@ -29,46 +71,11 @@ class View
 	 */
 	public function set(array $values)
 	{
-		foreach($values as $key => $value)
-		{
+		foreach($values as $key => $value) {
 			$this->$key = $value;
 		}
 
 		return $this;
-	}
-
-	/**
-	 * Render template HTML
-	 *
-	 * @param string $file the template file to load
-	 * @return string
-	 */
-	public function __invoke($file, $dir = __DIR__)
-	{
-		extract((array) $this);
-		ob_start();
-		require rtrim($dir, '/') . '/' . $file . static::$ext;
-		return trim(ob_get_clean());
-	}
-
-	/**
-	 * Extend a parent template
-	 *
-	 * @param string $file name of template
-	 */
-	public function extend($file, $dir = __DIR__)
-	{
-		ob_end_clean(); // Ignore this child class and load the parent!
-		ob_start();
-		print $this($file, $dir);
-	}
-
-	/**
-	 * Start a new block
-	 */
-	public function start()
-	{
-		ob_start();
 	}
 
 	/**
@@ -80,8 +87,7 @@ class View
 	 */
 	public function block($name, $default = '')
 	{
-		if(isset($this->__blocks[$name]))
-		{
+		if(isset($this->__blocks[$name])) {
 			return $this->__blocks[$name];
 		}
 
@@ -89,30 +95,63 @@ class View
 	}
 
 	/**
-	 * End a block
+	 * Start a new block
+	 */
+	public function start()
+	{
+		ob_start();
+	}
+
+	/**
+	 * End a block. The last item in the chain is the parent block.
 	 *
 	 * @param string $name name of block
-	 * @param boolean $keep_parent true to append parent block contents
+	 * @param string $append Set to 'append', 'prepend', or default false
 	 */
-	public function end($name, $keep_parent = FALSE)
+	public function end($name, $append = false)
 	{
 		$buffer = ob_get_clean();
 
-		if( ! isset($this->__blocks[$name]))
-		{
-			$this->__blocks[$name] = $buffer;
-			if($keep_parent) $this->__append[$name] = TRUE;
-		}
-		elseif(isset($this->__append[$name]))
-		{
-			if( ! $keep_parent) unset($this->__append[$name]);
-			$this->__blocks[$name] = $buffer . $this->__blocks[$name];
-		}
-		else
-		{
-			$this->__blocks[$name] = $buffer;
+		if(empty($this->__blocks[$name])) {
+
+			$this->__blocks[$name] = trim($buffer);
+
+			$this->__append[$name] = $append ? ($append === 'prepend' ? 1 : 2) : false;
+
+		} elseif ( ! empty($this->__append[$name])) {
+
+			if($this->__append[$name] === 1) {
+				$this->__blocks[$name] .= $buffer;
+			} else {
+				$this->__blocks[$name] = $buffer . $this->__blocks[$name];
+			}
+
+			$this->__append[$name] = $append ? ($append === 'prepend' ? 1 : 2) : false;
 		}
 
 		print $this->__blocks[$name];
 	}
+
+	/**
+	 * Convert special characters to HTML safe entities.
+	 *
+	 * @param string $string to encode
+	 * @return string
+	 */
+	public function escape($string)
+	{
+		return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
+	}
+
+	/**
+	 * Convert dangerous HTML entities into special characters
+	 *
+	 * @param string $s string to decode
+	 * @return string
+	 */
+	public function decode($string)
+	{
+		return htmlspecialchars_decode($string, ENT_QUOTES, 'UTF-8');
+	}
+
 }
