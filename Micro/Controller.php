@@ -51,7 +51,7 @@ class Controller
 			);
 
 			// 405 requires the response to contain a list of "Allow[ed]" methods
-			$response->header('Allow', join(', ', $methods));
+			$response->header('Allow', strtoupper(join(', ', $methods)));
 
 			return $response;
 		}
