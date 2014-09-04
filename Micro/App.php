@@ -12,6 +12,9 @@
  */
 namespace Micro;
 
+use Symfony\Component\HttpFoundation\Request as Request;
+use Symfony\Component\HttpFoundation\Response;
+
 class App extends Events
 {
 	protected $controllers = array();
@@ -23,8 +26,10 @@ class App extends Events
 	{
 		$response = new Response();
 
-		$path = $request->path;
-		$method = $request->method;
+		$path = trim($request->getPathInfo(), '/');
+		$method = $request->getMethod();
+
+		//var_dump($path, $method);
 
 		try {
 
@@ -72,15 +77,19 @@ class App extends Events
 
 				$callback = $controller['callback'];
 
-				if( ! is_object($callback) AND ! $callback instanceof Closure) {
+				if( ! is_object($callback) AND is_string($callback)) {
 					$callback = new $callback($request);
 				}
 
 				if($controller['methods']) {
 					// Does this closure support this HTTP method?
 					if ( ! in_array($method, $controller['methods'])) {
-						$response->status(Response::METHOD_NOT_ALLOWED);
-						$response->header('Allow', join(', ', $controller['methods']));
+						
+						$response = new Response();
+						$response->setStatusCode(Response::HTTP_METHOD_NOT_ALLOWED);
+
+						// 405 requires the response to contain a list of "Allow[ed]" methods
+						$response->headers->set('Allow', strtoupper(join(', ', $controller['methods'])));
 						$this->emit('method_not_allowed', $request, $response);
 						
 						return $response;
@@ -92,29 +101,34 @@ class App extends Events
 				
 				if($result instanceof Response) {
 					return $result;
-				}
+				
+				} else if(is_int($result)) {
+					$response->setStatusCode($result);
 
-				if(is_int($result)) {
+				} else if(is_array($result)) {
 
-					$response->status($result);
+					$response->setContent(json_encode($result));
+					$response->headers->set('Content-Type', 'application/json');
 
-					if(isset($response::$codes[$result])) {
-						$response->content($response::$codes[$result]);
-					}
+				} else if($response === false) {
+					$response->setStatusCode(Response::HTTP_UNAUTHORIZED);
 
-				} else if($result) {
-					$response->content($result);
+				} else if($response === null) {
+					$response->setStatusCode(Response::HTTP_NOT_FOUND);
+
+				} else if($response) {
+					$response->setContent('' . $result);
 				}
 
 				return $response;
 			}
 
-			$response->status(Response::NOT_FOUND);
+			$response->setStatusCode(Response::HTTP_NOT_FOUND);
 			$this->emit('not_found', $request, $response);
 
 		} catch(\Exception $exception) {
 			
-			$response->status(Response::SERVER_ERROR);
+			$response->setStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
 			
 			if($this->emit('exception', $exception, $request, $response)) {
 				throw $exception;
@@ -132,13 +146,15 @@ class App extends Events
 	 * @param closure $callback
 	 * @param boolean $overwrite
 	 */
-	public function map($route, $callback, $methods = NULL, $overwrite = true)
+	public function map($route, $callback, $methods = null, $overwrite = true)
 	{
 		$route = trim($route, '/');
 
 		if( ! is_array($methods)) {
 			$methods = explode('|', $methods);
 		}
+
+		$methods = array_filter($methods);
 
 		/* Removed for PHP 5.3 support
 		if($callback instanceof \Closure) {

@@ -12,6 +12,9 @@
  */
 namespace Micro;
 
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
 class Controller
 {
 	/*
@@ -29,7 +32,7 @@ class Controller
 	}
 	
 
-	public function __invoke($request, $params = null)
+	public function __invoke(Request $request, $params = null)
 	{
 		// Does __invoke take args or what?
 		$params = func_get_args();
@@ -37,13 +40,13 @@ class Controller
 		// Get the request object
 		$request = array_shift($params);
 
-		$method = strtolower($request->method);
+		$method = strtolower($request->getMethod());
 
 		// Try the global index if not supported
-		if( ! method_exists($this, $method))
-		{
+		if( ! method_exists($this, $method)) {
+
 			$response = new Response();
-			$response->status(Response::METHOD_NOT_ALLOWED);
+			$response->setStatusCode(Response::HTTP_METHOD_NOT_ALLOWED);
 
 			$methods = array_intersect(
 				array('get', 'post', 'put', 'patch', 'delete', 'options'),
@@ -51,7 +54,7 @@ class Controller
 			);
 
 			// 405 requires the response to contain a list of "Allow[ed]" methods
-			$response->header('Allow', strtoupper(join(', ', $methods)));
+			$response->header->set('Allow', strtoupper(join(', ', $methods)));
 
 			return $response;
 		}
@@ -60,9 +63,11 @@ class Controller
 		$result = call_user_func_array(array($this, $method), $params);
 
 		// Render HTML only for initial (non-AJAX) GET requests which return arrays
-		if($method == 'get' AND ! $request->isAjax() AND is_array($result)) {
+		if($method == 'get' AND ! $request->isXmlHttpRequest() AND is_array($result)) {
 			$result = $this->html(str_replace('\\', '/', get_class($this)), $result);
 		}
+
+		//var_dump($result);
 
 		return $result;
 	}
