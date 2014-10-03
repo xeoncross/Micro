@@ -20,7 +20,7 @@ class Cookie
 
 		$this->config = $config + array(
 			'timeout' => 60 * 30, // Only last for half an hour
-			'expire' => 0, // Expires when browser closes
+			'expires' => 0, // Expires when browser closes
 			'path' => '/',
 			'domain' => '.' . getenv('HTTP_HOST'),
 			'secure' => false,

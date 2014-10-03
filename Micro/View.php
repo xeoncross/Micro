@@ -44,7 +44,6 @@ class View
 		if(isset($this->extends)) {
 			$extends = $this->extends;
 			$this->extends = null;
-			//$this->content = $result;
 			
 			// If content wasn't defined
 			if(empty($this->__blocks['content'])) {
@@ -91,10 +90,12 @@ class View
 	 * @param string $default Default value to return if block is missing
 	 * @return string
 	 */
-	public function block($name, $default = '')
+	public function block($name, $keep = false, $default = '')
 	{
 		if(isset($this->__blocks[$name])) {
-			return $this->__blocks[$name];
+			$block = $this->__blocks[$name];
+			if( ! $keep) { unset($this->__blocks[$name]); }
+			return $block;
 		}
 
 		return $default;
@@ -135,7 +136,7 @@ class View
 			$this->__append[$name] = $append ? ($append === 'prepend' ? 1 : 2) : false;
 		}
 
-		print $this->__blocks[$name];
+		print $this->block($name, true);
 	}
 
 	/**
