@@ -80,7 +80,7 @@ class CURL
 
 		if($object->error)
 		{
-			log_message($object->error_code . ': '. $object->error);
+			error_log($object->error_code . ': '. $object->error);
 		}
 
 		return $object;
