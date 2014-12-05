@@ -11,16 +11,28 @@ class Table
 	public $rows;
 
 	// List of all table columns
-	public $columns;
+	public $columns = array();
+
+	public $meta = array();
 
 	/**
 	 * Create the table object using these rows
 	 *
 	 * @param array $rows to use
 	 */
-	public function __construct(array $rows)
+	public function __construct(array $rows, array $meta, $uri = null)
 	{
 		$this->rows = $rows;
+		$this->meta = $meta;
+
+		if(isset($rows[0])) {
+			foreach($rows[0] as $column => $value) {
+				// Ignore composite value / nested records
+				if(is_scalar($value)) {
+					$this->column($column, ucwords(str_replace('_', ' ', $column)));
+				}
+			}
+		}
 	}
 
 	/**
@@ -53,7 +65,7 @@ class Table
 				$direction = $sort == 'desc' ? 'asc' : 'desc';
 
 				// Build URL parameters taking existing parameters into account
-				$url = site_url(URL_PATH, array('column' => $key, 'sort' => $direction) + $params);
+				$url = site_url(PATH, array('column' => $key, 'sort' => $direction) + $params);
 
 				$html .= '<a href="' . $url . '">' . $data[0] . '</a>';
 			}
@@ -70,11 +82,13 @@ class Table
 		$odd = 0;
 		foreach($this->rows as $row)
 		{
+			$row = (array) $row;
 			$odd = 1 - $odd;
 
 			$html .= "\n\t\t<tr class=\"". ($odd ? 'odd' : 'even') . '">';
 			foreach($this->columns as $column => $data)
 			{
+				//print '<pre>';print_r($data);print_r($row);
 				$html .= "\n\t\t\t<td>" . ($data[1] ? $data[1]($row) : $row[$column]) . "</td>";
 			}
 
